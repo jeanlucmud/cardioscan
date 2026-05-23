@@ -714,7 +714,7 @@
     const dot  = document.getElementById('statusDot');
     const text = document.getElementById('statusText');
     try {
-      const r = await fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(2000) });
+      const r = await fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(60000) });
       if (r.ok) {
         dot.className  = 'status-dot online';
         text.textContent = 'API connectée';
