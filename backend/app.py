@@ -1,6 +1,7 @@
 """
 CardioScan — Backend Flask
 API REST pour la prédiction du risque cardiaque
+Le modèle s'entraîne automatiquement s'il n'existe pas.
 """
 
 from flask import Flask, request, jsonify
@@ -10,64 +11,98 @@ import numpy as np
 import os
 
 app = Flask(__name__)
-CORS(app)  # Autorise les appels depuis le frontend HTML
+CORS(app)
 
-# Charger le modèle entraîné
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "model", "cardiac_model.pkl")
-SCALER_PATH = os.path.join(os.path.dirname(__file__), "model", "scaler.pkl")
+MODEL_DIR   = os.path.join(os.path.dirname(__file__), "model")
+MODEL_PATH  = os.path.join(MODEL_DIR, "cardiac_model.pkl")
+SCALER_PATH = os.path.join(MODEL_DIR, "scaler.pkl")
 
-model = joblib.load(MODEL_PATH)
-scaler = joblib.load(SCALER_PATH)
-
-# Ordre exact des features (doit correspondre à l'entraînement)
 FEATURES = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs',
             'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal']
+
+model  = None
+scaler = None
+
+
+def train_and_save():
+    """Entraîne le modèle et le sauvegarde si absent."""
+    import pandas as pd
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.model_selection import train_test_split
+
+    print("🤖 Modèle absent — entraînement en cours...")
+    os.makedirs(MODEL_DIR, exist_ok=True)
+
+    # Téléchargement du dataset
+    url = "https://raw.githubusercontent.com/dsrscientist/dataset1/master/heart.csv"
+    df  = pd.read_csv(url)
+    print(f"✅ Dataset chargé — {len(df)} patients")
+
+    X = df[FEATURES]
+    y = df['target']
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+
+    sc = StandardScaler()
+    X_train_sc = sc.fit_transform(X_train)
+
+    clf = RandomForestClassifier(n_estimators=200, max_depth=8,
+                                  random_state=42, n_jobs=-1)
+    clf.fit(X_train_sc, y_train)
+
+    joblib.dump(clf, MODEL_PATH)
+    joblib.dump(sc,  SCALER_PATH)
+    print("💾 Modèle sauvegardé !")
+    return clf, sc
+
+
+def load_model():
+    """Charge ou entraîne le modèle au démarrage."""
+    global model, scaler
+    if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
+        print("✅ Chargement du modèle existant...")
+        model  = joblib.load(MODEL_PATH)
+        scaler = joblib.load(SCALER_PATH)
+    else:
+        model, scaler = train_and_save()
+    print("🚀 API prête !")
+
+
+# Charger le modèle au démarrage
+load_model()
 
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    """
-    Endpoint principal de prédiction.
-    Reçoit un JSON avec les 13 paramètres cliniques.
-    Retourne le risque (HIGH/LOW), la probabilité et les facteurs.
-    """
     try:
         data = request.get_json()
 
-        # Validation des champs
         missing = [f for f in FEATURES if f not in data]
         if missing:
             return jsonify({"error": f"Champs manquants : {missing}"}), 400
 
-        # Construction du vecteur de features
-        X = np.array([[data[f] for f in FEATURES]])
+        X        = np.array([[data[f] for f in FEATURES]])
         X_scaled = scaler.transform(X)
 
-        # Prédiction
-        prediction = model.predict(X_scaled)[0]           # 0 = sain, 1 = malade
-        proba = model.predict_proba(X_scaled)[0][1]       # Proba d'être malade
+        prediction = model.predict(X_scaled)[0]
+        proba      = model.predict_proba(X_scaled)[0][1]
 
-        risk = "HIGH" if prediction == 1 else "LOW"
+        risk        = "HIGH" if prediction == 1 else "LOW"
         probability = round(float(proba) * 100, 1)
+        factors     = analyze_factors(data, risk)
 
-        # Génération des facteurs d'analyse
-        factors = analyze_factors(data, risk)
-
-        return jsonify({
-            "risk": risk,
-            "probability": probability,
-            "factors": factors
-        })
+        return jsonify({"risk": risk, "probability": probability, "factors": factors})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 def analyze_factors(data, risk):
-    """Génère une liste de facteurs de risque lisibles pour l'utilisateur."""
     factors = []
 
-    # Âge
     age = data['age']
     if age >= 60:
         factors.append({"status": "warn", "text": f"Âge élevé ({age} ans) — facteur de risque majeur"})
@@ -76,7 +111,6 @@ def analyze_factors(data, risk):
     else:
         factors.append({"status": "ok", "text": f"Âge favorable ({age} ans)"})
 
-    # Cholestérol
     chol = data['chol']
     if chol > 240:
         factors.append({"status": "warn", "text": f"Cholestérol élevé ({chol} mg/dl) — risque accru"})
@@ -85,7 +119,6 @@ def analyze_factors(data, risk):
     else:
         factors.append({"status": "ok", "text": f"Cholestérol normal ({chol} mg/dl)"})
 
-    # Pression artérielle
     bp = data['trestbps']
     if bp > 140:
         factors.append({"status": "warn", "text": f"Hypertension ({bp} mmHg) — facteur cardiovasculaire"})
@@ -94,27 +127,23 @@ def analyze_factors(data, risk):
     else:
         factors.append({"status": "ok", "text": f"Pression artérielle normale ({bp} mmHg)"})
 
-    # Fréquence cardiaque max
     thalach = data['thalach']
     if thalach < 100:
         factors.append({"status": "warn", "text": f"Fréquence cardiaque max faible ({thalach} bpm)"})
     elif thalach > 150:
         factors.append({"status": "ok", "text": f"Bonne capacité cardiaque ({thalach} bpm)"})
 
-    # Angine à l'effort
     if data['exang'] == 1:
         factors.append({"status": "warn", "text": "Angine induite à l'effort — signe d'ischémie"})
     else:
         factors.append({"status": "ok", "text": "Pas d'angine à l'effort"})
 
-    # Dépression ST
     oldpeak = data['oldpeak']
     if oldpeak > 2:
         factors.append({"status": "warn", "text": f"Dépression ST significative ({oldpeak}) — ischémie probable"})
     elif oldpeak > 0:
         factors.append({"status": "info", "text": f"Légère dépression ST ({oldpeak})"})
 
-    # Vaisseaux colorés
     ca = data['ca']
     if ca >= 2:
         factors.append({"status": "warn", "text": f"{ca} vaisseau(x) obstrué(s) à la fluoroscopie"})
@@ -123,12 +152,11 @@ def analyze_factors(data, risk):
     else:
         factors.append({"status": "ok", "text": "Aucun vaisseau obstrué détecté"})
 
-    return factors[:6]  # Limiter à 6 facteurs
+    return factors[:6]
 
 
 @app.route("/health", methods=["GET"])
 def health():
-    """Vérification de l'état du serveur."""
     return jsonify({"status": "ok", "model": "Random Forest", "version": "1.0"})
 
 
