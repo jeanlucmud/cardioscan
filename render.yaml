@@ -1,0 +1,26 @@
+﻿
+services:
+  # Backend API on Render
+  - type: web
+    name: cardioscan-api
+    env: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: RENDER
+        value: "true"
+
+  # Frontend on Render (Static Site)
+  - type: static_sites
+    name: cardioscan-front
+    buildCommand: echo "No build needed"
+    staticPublishPath: fronted
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+

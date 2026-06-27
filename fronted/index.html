@@ -4,480 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CardioScan — Prédiction Cardiaque</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #0a0c10;
-      --surface: #111318;
-      --surface2: #181c23;
-      --border: rgba(255,255,255,0.07);
-      --accent: #e8c97a;
-      --accent2: #c0392b;
-      --low: #2ecc71;
-      --high: #e74c3c;
-      --text: #e8e4dc;
-      --muted: #7a7a8a;
-      --font-serif: 'Cormorant Garamond', Georgia, serif;
-      --font-mono: 'DM Mono', monospace;
-    }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-mono);
-      font-weight: 300;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(232,201,122,0.04) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 80% at 80% 90%, rgba(192,57,43,0.05) 0%, transparent 60%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    header {
-      position: relative;
-      z-index: 10;
-      padding: 2.5rem 3rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .logo { display: flex; align-items: baseline; gap: 0.6rem; }
-    .logo-mark { width: 28px; height: 28px; position: relative; flex-shrink: 0; }
-    .logo-mark svg { width: 100%; height: 100%; }
-
-    .logo-text {
-      font-family: var(--font-serif);
-      font-size: 1.6rem;
-      font-weight: 300;
-      letter-spacing: 0.08em;
-      color: var(--accent);
-    }
-
-    .logo-sub {
-      font-size: 0.62rem;
-      letter-spacing: 0.22em;
-      color: var(--muted);
-      text-transform: uppercase;
-    }
-
-    .header-badge {
-      font-size: 0.6rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      padding: 0.3rem 0.8rem;
-      border-radius: 2px;
-    }
-
-    /* API status indicator */
-    .api-status {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.6rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-    }
-
-    .status-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--muted);
-      transition: background 0.3s;
-    }
-
-    .status-dot.online  { background: var(--low);  box-shadow: 0 0 6px var(--low); }
-    .status-dot.offline { background: var(--high); box-shadow: 0 0 6px var(--high); }
-
-    .status-text { color: var(--muted); }
-
-    .hero {
-      position: relative;
-      z-index: 10;
-      padding: 5rem 3rem 3rem;
-      max-width: 860px;
-    }
-
-    .hero-label {
-      font-size: 0.6rem;
-      letter-spacing: 0.3em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 1.2rem;
-    }
-
-    .hero h1 {
-      font-family: var(--font-serif);
-      font-size: clamp(2.8rem, 5vw, 4.2rem);
-      font-weight: 300;
-      line-height: 1.1;
-      color: var(--text);
-      margin-bottom: 1.2rem;
-    }
-
-    .hero h1 em { font-style: italic; color: var(--accent); }
-
-    .hero p {
-      font-size: 0.78rem;
-      line-height: 1.8;
-      color: var(--muted);
-      max-width: 480px;
-    }
-
-    main {
-      position: relative;
-      z-index: 10;
-      padding: 2rem 3rem 5rem;
-      display: grid;
-      grid-template-columns: 1fr 380px;
-      gap: 2rem;
-      max-width: 1200px;
-      align-items: start;
-    }
-
-    .form-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 2.5rem;
-    }
-
-    .form-card h2 {
-      font-family: var(--font-serif);
-      font-size: 1.4rem;
-      font-weight: 300;
-      margin-bottom: 0.3rem;
-      color: var(--text);
-    }
-
-    .form-card .subtitle {
-      font-size: 0.65rem;
-      letter-spacing: 0.15em;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 2rem;
-    }
-
-    .fields-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.4rem;
-    }
-
-    .field { display: flex; flex-direction: column; gap: 0.5rem; }
-    .field.full { grid-column: 1 / -1; }
-
-    .field label {
-      font-size: 0.6rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .field input,
-    .field select {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      color: var(--text);
-      font-family: var(--font-mono);
-      font-size: 0.82rem;
-      font-weight: 300;
-      padding: 0.7rem 0.9rem;
-      outline: none;
-      transition: border-color 0.2s;
-      width: 100%;
-      appearance: none;
-    }
-
-    .field input:focus,
-    .field select:focus { border-color: var(--accent); }
-
-    .field select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a7a8a'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 0.9rem center;
-      padding-right: 2.2rem;
-    }
-
-    .field input::placeholder { color: var(--muted); opacity: 0.5; }
-
-    .divider {
-      grid-column: 1 / -1;
-      height: 1px;
-      background: var(--border);
-      margin: 0.4rem 0;
-    }
-
-    .section-label {
-      grid-column: 1 / -1;
-      font-size: 0.58rem;
-      letter-spacing: 0.25em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-top: 0.4rem;
-    }
-
-    .btn-predict {
-      grid-column: 1 / -1;
-      margin-top: 1rem;
-      background: var(--accent);
-      color: var(--bg);
-      border: none;
-      border-radius: 3px;
-      padding: 1rem 2rem;
-      font-family: var(--font-mono);
-      font-size: 0.7rem;
-      font-weight: 400;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.15s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.7rem;
-    }
-
-    .btn-predict:hover { opacity: 0.88; transform: translateY(-1px); }
-    .btn-predict:active { transform: translateY(0); }
-    .btn-predict:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .btn-predict .spinner {
-      width: 14px; height: 14px;
-      border: 2px solid rgba(0,0,0,0.3);
-      border-top-color: var(--bg);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      display: none;
-    }
-
-    .btn-predict.loading .spinner { display: block; }
-    .btn-predict.loading .btn-text { opacity: 0.6; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Right panel */
-    .right-panel { display: flex; flex-direction: column; gap: 1.5rem; }
-
-    .result-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 2rem;
-      min-height: 260px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      transition: border-color 0.4s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .result-card.low  { border-color: rgba(46,204,113,0.35); }
-    .result-card.high { border-color: rgba(231,76,60,0.35); }
-
-    .result-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      transition: opacity 0.4s;
-      pointer-events: none;
-    }
-
-    .result-card.low::before  { background: radial-gradient(ellipse at center, rgba(46,204,113,0.06) 0%, transparent 70%); opacity: 1; }
-    .result-card.high::before { background: radial-gradient(ellipse at center, rgba(231,76,60,0.08) 0%, transparent 70%); opacity: 1; }
-
-    .result-idle { color: var(--muted); font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; }
-    .result-idle svg { margin: 0 auto 1rem; display: block; opacity: 0.2; }
-
-    .result-content { display: none; flex-direction: column; align-items: center; gap: 1rem; width: 100%; }
-    .result-content.show { display: flex; animation: fadeUp 0.5s ease; }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .result-icon { font-size: 2.8rem; line-height: 1; }
-
-    .result-label {
-      font-family: var(--font-serif);
-      font-size: 1.8rem;
-      font-weight: 300;
-    }
-
-    .result-label.low  { color: var(--low); }
-    .result-label.high { color: var(--high); }
-
-    .ecg-line { width: 100%; }
-
-    .ecg-path {
-      stroke-dasharray: 400;
-      stroke-dashoffset: 400;
-    }
-
-    .ecg-path.animate { animation: ecgDraw 1.5s ease forwards; }
-
-    @keyframes ecgDraw { to { stroke-dashoffset: 0; } }
-
-    .gauge-wrap { width: 100%; }
-
-    .gauge-bar {
-      width: 100%;
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-bottom: 0.4rem;
-    }
-
-    .gauge-fill {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 1s cubic-bezier(.22,.68,0,1.2);
-      width: 0%;
-    }
-
-    .gauge-fill.low  { background: var(--low); }
-    .gauge-fill.high { background: var(--high); }
-
-    .gauge-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.58rem;
-      color: var(--muted);
-      letter-spacing: 0.1em;
-    }
-
-    .result-prob {
-      font-size: 2.6rem;
-      font-family: var(--font-serif);
-      font-weight: 300;
-      color: var(--accent);
-    }
-
-    .factors-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1.8rem;
-    }
-
-    .factors-card h3 {
-      font-family: var(--font-serif);
-      font-size: 1rem;
-      font-weight: 300;
-      margin-bottom: 1rem;
-      color: var(--text);
-    }
-
-    .factor-list { display: flex; flex-direction: column; gap: 0.7rem; }
-
-    .factor-item {
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-      font-size: 0.72rem;
-      color: var(--muted);
-      opacity: 0;
-      transition: opacity 0.4s;
-    }
-
-    .factor-item.visible { opacity: 1; }
-
-    .factor-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-    .factor-dot.warn { background: var(--accent2); }
-    .factor-dot.ok   { background: var(--low); }
-    .factor-dot.info { background: var(--accent); }
-
-    .info-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1.6rem;
-    }
-
-    .info-card h3 {
-      font-size: 0.6rem;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 1rem;
-    }
-
-    .info-rows { display: flex; flex-direction: column; gap: 0.6rem; }
-
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.68rem;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0.6rem;
-    }
-
-    .info-row:last-child { border-bottom: none; padding-bottom: 0; }
-    .info-row .key { color: var(--muted); }
-    .info-row .val { color: var(--text); }
-
-    /* API setup banner */
-    .setup-banner {
-      background: rgba(232,201,122,0.06);
-      border: 1px solid rgba(232,201,122,0.2);
-      border-radius: 4px;
-      padding: 1.2rem 1.5rem;
-      font-size: 0.68rem;
-      line-height: 1.7;
-      color: var(--muted);
-    }
-
-    .setup-banner strong { color: var(--accent); font-weight: 400; }
-    .setup-banner code {
-      background: var(--surface2);
-      padding: 0.15rem 0.4rem;
-      border-radius: 2px;
-      font-size: 0.65rem;
-      color: var(--text);
-    }
-
-    .disclaimer {
-      grid-column: 1 / -1;
-      font-size: 0.6rem;
-      color: var(--muted);
-      opacity: 0.5;
-      letter-spacing: 0.05em;
-      line-height: 1.6;
-      text-align: center;
-      padding: 1rem 0 0;
-      border-top: 1px solid var(--border);
-    }
-
-    @media (max-width: 900px) {
-      main { grid-template-columns: 1fr; padding: 1.5rem; }
-      header { padding: 1.5rem; flex-wrap: wrap; gap: 1rem; }
-      .hero { padding: 3rem 1.5rem 2rem; }
-      .fields-grid { grid-template-columns: 1fr; }
-      .field.full { grid-column: 1; }
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="Cardio.css">
 </head>
 <body>
 
@@ -485,8 +13,8 @@
   <div class="logo">
     <div class="logo-mark">
       <svg viewBox="0 0 28 28" fill="none">
-        <path d="M14 24s-9-6.5-9-12a6 6 0 0 1 12 0 6 6 0 0 1 12 0c0 5.5-9 12-9 12" fill="none" stroke="#e8c97a" stroke-width="1.5" stroke-linejoin="round"/>
-        <polyline points="4,14 8,14 10,10 12,18 15,12 17,15 20,14 24,14" fill="none" stroke="#e8c97a" stroke-width="1" opacity="0.6"/>
+        <path d="M14 24s-9-6.5-9-12a6 6 0 0 1 12 0 6 6 0 0 1 12 0c0 5.5-9 12-9 12" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/>
+        <polyline points="4,14 8,14 10,10 12,18 15,12 17,15 20,14 24,14" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.8"/>
       </svg>
     </div>
     <div>
@@ -494,151 +22,70 @@
       <div class="logo-sub">Analyse Prédictive</div>
     </div>
   </div>
-
   <div class="api-status">
     <div class="status-dot" id="statusDot"></div>
-    <span class="status-text" id="statusText">Vérification API…</span>
+    <span class="status-text" id="statusText">Connexion...</span>
   </div>
-
-  <div class="header-badge">Random Forest · v1.0</div>
 </header>
 
+<!-- Bannière de réveil -->
+<div class="wake-banner" id="wakeBanner">
+  <div class="wake-spinner"></div>
+  <div>
+    <div class="wake-text">⏳ Le serveur démarre, merci de patienter (<span id="countdown">60</span>s)...</div>
+    <div class="wake-progress"><div class="wake-fill" id="wakeFill"></div></div>
+  </div>
+</div>
+
 <section class="hero">
-  <div class="hero-label">◆ Outil de dépistage</div>
-  <h1>Évaluez votre <em>risque cardiaque</em><br>en quelques secondes plus rapidement</h1>
-  <p>Renseignez vos paramètres cliniques ci-dessous. Notre modèle Random Forest analysera vos données et estimera votre profil de risque cardiovasculaire.</p>
+  <div class="hero-label">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Un Outil de dépistage cardiovasculaire
+  </div>
+  <h1>Évaluez votre <em>risque cardiaque</em><br>en quelques secondes</h1>
+  <p>Renseignez vos paramètres cliniques. Notre modèle Random Forest analysera vos données et estimera votre profil de le risque cardiovasculaire.</p>
 </section>
 
 <main>
   <div class="form-card">
-    <h2>Paramètres cliniques</h2>
-    <div class="subtitle">Renseignez tous les champs pour une analyse précise</div>
-
+    <div class="card-header">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 12h6M12 9v6M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/>
+        </svg>
+      </div>
+      <div>
+        <h2>Paramètres cliniques</h2>
+        <div class="subtitle">Renseignez tous les champs pour une analyse précise</div>
+      </div>
+    </div>
     <div class="fields-grid">
-
       <div class="section-label">Informations générales</div>
-
-      <div class="field">
-        <label>Âge (ans)</label>
-        <input type="number" id="age" min="20" max="100" placeholder="ex: 52" />
-      </div>
-
-      <div class="field">
-        <label>Sexe</label>
-        <select id="sex">
-          <option value="" disabled selected>Sélectionner</option>
-          <option value="1">Masculin</option>
-          <option value="0">Féminin</option>
-        </select>
-      </div>
-
+      <div class="field"><label>Âge (ans)</label><input type="number" id="age" min="20" max="100" placeholder="ex: 52"/></div>
+      <div class="field"><label>Sexe</label><select id="sex"><option value="" disabled selected>Sélectionner</option><option value="1">Masculin</option><option value="0">Féminin</option></select></div>
       <div class="divider"></div>
       <div class="section-label">Paramètres cardiovasculaires</div>
-
-      <div class="field">
-        <label>Pression artérielle repos (mmHg)</label>
-        <input type="number" id="trestbps" min="80" max="200" placeholder="ex: 130" />
-      </div>
-
-      <div class="field">
-        <label>Cholestérol sérique (mg/dl)</label>
-        <input type="number" id="chol" min="100" max="600" placeholder="ex: 240" />
-      </div>
-
-      <div class="field">
-        <label>Glycémie à jeun &gt; 120 mg/dl</label>
-        <select id="fbs">
-          <option value="" disabled selected>Sélectionner</option>
-          <option value="0">Non</option>
-          <option value="1">Oui</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Fréquence cardiaque max (bpm)</label>
-        <input type="number" id="thalach" min="60" max="220" placeholder="ex: 150" />
-      </div>
-
-      <div class="field full">
-        <label>Type de douleur thoracique</label>
-        <select id="cp">
-          <option value="" disabled selected>Sélectionner un type</option>
-          <option value="0">Angine typique</option>
-          <option value="1">Angine atypique</option>
-          <option value="2">Douleur non-angineuse</option>
-          <option value="3">Asymptomatique</option>
-        </select>
-      </div>
-
+      <div class="field"><label>Pression artérielle repos (mmHg)</label><input type="number" id="trestbps" min="80" max="200" placeholder="ex: 130"/></div>
+      <div class="field"><label>Cholestérol sérique (mg/dl)</label><input type="number" id="chol" min="100" max="600" placeholder="ex: 240"/></div>
+      <div class="field"><label>Glycémie à jeun &gt; 120 mg/dl</label><select id="fbs"><option value="" disabled selected>Sélectionner</option><option value="0">Non</option><option value="1">Oui</option></select></div>
+      <div class="field"><label>Fréquence cardiaque max (bpm)</label><input type="number" id="thalach" min="60" max="220" placeholder="ex: 150"/></div>
+      <div class="field full"><label>Type de douleur thoracique</label><select id="cp"><option value="" disabled selected>Sélectionner</option><option value="0">Angine typique</option><option value="1">Angine atypique</option><option value="2">Douleur non-angineuse</option><option value="3">Asymptomatique</option></select></div>
       <div class="divider"></div>
       <div class="section-label">Résultats ECG & Tests</div>
-
-      <div class="field">
-        <label>Résultats ECG au repos</label>
-        <select id="restecg">
-          <option value="" disabled selected>Sélectionner</option>
-          <option value="0">Normal</option>
-          <option value="1">Anomalie ST-T</option>
-          <option value="2">Hypertrophie ventriculaire</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Angine induite à l'effort</label>
-        <select id="exang">
-          <option value="" disabled selected>Sélectionner</option>
-          <option value="0">Non</option>
-          <option value="1">Oui</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Dépression ST (oldpeak)</label>
-        <input type="number" id="oldpeak" min="0" max="7" step="0.1" placeholder="ex: 1.5" />
-      </div>
-
-      <div class="field">
-        <label>Pente du segment ST</label>
-        <select id="slope">
-          <option value="" disabled selected>Sélectionner</option>
-          <option value="0">Ascendante</option>
-          <option value="1">Plate</option>
-          <option value="2">Descendante</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Vaisseaux colorés (0-3)</label>
-        <select id="ca">
-          <option value="" disabled selected>Sélectionner</option>
-          <option value="0">0</option>
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Thalassémie</label>
-        <select id="thal">
-          <option value="" disabled selected>Sélectionner</option>
-          <option value="1">Normal</option>
-          <option value="2">Défaut fixe</option>
-          <option value="3">Défaut réversible</option>
-        </select>
-      </div>
-
+      <div class="field"><label>Résultats ECG au repos</label><select id="restecg"><option value="" disabled selected>Sélectionner</option><option value="0">Normal</option><option value="1">Anomalie ST-T</option><option value="2">Hypertrophie ventriculaire</option></select></div>
+      <div class="field"><label>Angine induite à l'effort</label><select id="exang"><option value="" disabled selected>Sélectionner</option><option value="0">Non</option><option value="1">Oui</option></select></div>
+      <div class="field"><label>Dépression ST (oldpeak)</label><input type="number" id="oldpeak" min="0" max="7" step="0.1" placeholder="ex: 1.5"/></div>
+      <div class="field"><label>Pente du segment ST</label><select id="slope"><option value="" disabled selected>Sélectionner</option><option value="1">Ascendante</option><option value="2">Plate</option><option value="3">Descendante</option></select></div>
+      <div class="field"><label>Vaisseaux colorés (0-3)</label><select id="ca"><option value="" disabled selected>Sélectionner</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
+      <div class="field"><label>Thalassémie</label><select id="thal"><option value="" disabled selected>Sélectionner</option><option value="0">Normal</option><option value="1">Défaut fixe</option><option value="2">Défaut réversible</option></select></div>
       <button class="btn-predict" id="predictBtn" onclick="predict()">
         <div class="spinner"></div>
         <span class="btn-text">Lancer l'analyse</span>
       </button>
-
     </div>
   </div>
 
-  <!-- Right panel -->
   <div class="right-panel">
-
     <div class="result-card" id="resultCard">
       <div class="result-idle" id="resultIdle">
         <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -647,28 +94,18 @@
         </svg>
         Remplissez le formulaire<br>pour voir l'analyse
       </div>
-
       <div class="result-content" id="resultContent">
         <div class="result-icon" id="resultIcon"></div>
         <div class="result-label" id="resultLabel"></div>
-
         <div class="ecg-line">
           <svg viewBox="0 0 300 40" preserveAspectRatio="none" style="width:100%;height:36px">
-            <path id="ecgPath" class="ecg-path"
-              d="M0,20 L30,20 L40,20 L50,5 L60,35 L70,20 L80,20 L100,20 L110,20 L120,5 L130,35 L140,20 L150,20 L170,20 L180,5 L190,35 L200,20 L220,20 L230,20 L240,5 L250,35 L260,20 L300,20"
-              fill="none" stroke="#e8c97a" stroke-width="1.5"/>
+            <path id="ecgPath" class="ecg-path" d="M0,20 L30,20 L40,20 L50,5 L60,35 L70,20 L80,20 L100,20 L110,20 L120,5 L130,35 L140,20 L150,20 L170,20 L180,5 L190,35 L200,20 L220,20 L230,20 L240,5 L250,35 L260,20 L300,20" fill="none" stroke="#007ced" stroke-width="1.5"/>
           </svg>
         </div>
-
         <div class="result-prob" id="resultProb"></div>
         <div class="gauge-wrap">
-          <div class="gauge-bar">
-            <div class="gauge-fill" id="gaugeFill"></div>
-          </div>
-          <div class="gauge-labels">
-            <span>Risque faible</span>
-            <span>Risque élevé</span>
-          </div>
+          <div class="gauge-bar"><div class="gauge-fill" id="gaugeFill"></div></div>
+          <div class="gauge-labels"><span>Risque faible</span><span>Risque élevé</span></div>
         </div>
       </div>
     </div>
@@ -678,144 +115,19 @@
       <div class="factor-list" id="factorList"></div>
     </div>
 
-    <!-- Setup instructions -->
-    <div class="setup-banner" id="setupBanner">
-      <strong>⚙️ Démarrage du backend Flask</strong><br><br>
-      <code>cd backend</code><br>
-      <code>pip install -r requirements.txt</code><br>
-      <code>python train_model.py</code><br>
-      <code>python app.py</code><br><br>
-      L'API démarre sur <strong>http://localhost:5000</strong>
-    </div>
-
     <div class="info-card">
       <h3>À propos du modèle</h3>
       <div class="info-rows">
         <div class="info-row"><span class="key">Algorithme</span><span class="val">Random Forest</span></div>
         <div class="info-row"><span class="key">Dataset</span><span class="val">Heart Disease UCI</span></div>
-        <div class="info-row"><span class="key">Précision</span><span class="val">~87%</span></div>
+        <div class="info-row"><span class="key">Précision</span><span class="val">~85%</span></div>
         <div class="info-row"><span class="key">Variables</span><span class="val">13 paramètres</span></div>
-        <div class="info-row"><span class="key">API</span><span class="val">Flask · localhost:5000</span></div>
       </div>
     </div>
-
   </div>
 
-  <div class="disclaimer">
-    ⚠️ Cet outil est destiné à des fins éducatives et informatives uniquement. Il ne remplace en aucun cas un avis médical professionnel. Consultez toujours un médecin pour tout diagnostic ou traitement.
-  </div>
+  <div class="disclaimer">⚠️ Cet outil est destiné à des fins éducatives uniquement. Il ne remplace pas un avis médical professionnel.</div>
 </main>
-
-<script>
-  const API_URL = 'http://cardioscan-cgwj.onrender.com';
-
-  // Check API health on load
-  async function checkAPI() {
-    const dot  = document.getElementById('statusDot');
-    const text = document.getElementById('statusText');
-    try {
-      const r = await fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(60000) });
-      if (r.ok) {
-        dot.className  = 'status-dot online';
-        text.textContent = 'API connectée';
-        document.getElementById('setupBanner').style.display = 'none';
-      } else { throw new Error(); }
-    } catch {
-      dot.className  = 'status-dot offline';
-      text.textContent = 'API hors ligne';
-    }
-  }
-
-  checkAPI();
-  setInterval(checkAPI, 10000);
-
-  async function predict() {
-    const fields = ['age','sex','cp','trestbps','chol','fbs','restecg','thalach','exang','oldpeak','slope','ca','thal'];
-    const data = {};
-
-    for (const f of fields) {
-      const el = document.getElementById(f);
-      if (!el || el.value === '') {
-        el.style.borderColor = '#e8c97a';
-        el.focus();
-        setTimeout(() => el.style.borderColor = '', 2000);
-        return;
-      }
-      data[f] = parseFloat(el.value);
-    }
-
-    const btn = document.getElementById('predictBtn');
-    btn.disabled = true;
-    btn.classList.add('loading');
-
-    try {
-      const response = await fetch(`${API_URL}/predict`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) throw new Error(await response.text());
-
-      const result = await response.json();
-      showResult(result);
-
-    } catch (e) {
-      alert("❌ Impossible de contacter l'API Flask.\n\nAssurez-vous que le serveur tourne :\n  python backend/app.py");
-    } finally {
-      btn.disabled = false;
-      btn.classList.remove('loading');
-    }
-  }
-
-  function showResult(result) {
-    const card    = document.getElementById('resultCard');
-    const idle    = document.getElementById('resultIdle');
-    const content = document.getElementById('resultContent');
-    const label   = document.getElementById('resultLabel');
-    const icon    = document.getElementById('resultIcon');
-    const prob    = document.getElementById('resultProb');
-    const fill    = document.getElementById('gaugeFill');
-    const ecgPath = document.getElementById('ecgPath');
-
-    const isHigh = result.risk === 'HIGH';
-
-    card.className    = 'result-card ' + (isHigh ? 'high' : 'low');
-    idle.style.display = 'none';
-
-    icon.textContent    = isHigh ? '⚠️' : '✅';
-    label.textContent   = isHigh ? 'Risque Élevé' : 'Risque Faible';
-    label.className     = 'result-label ' + (isHigh ? 'high' : 'low');
-    prob.textContent    = result.probability + '%';
-    fill.className      = 'gauge-fill ' + (isHigh ? 'high' : 'low');
-    ecgPath.style.stroke = isHigh ? '#e74c3c' : '#2ecc71';
-
-    content.style.display = 'flex';
-    content.classList.remove('show');
-    void content.offsetWidth;
-    content.classList.add('show');
-
-    setTimeout(() => { fill.style.width = result.probability + '%'; }, 200);
-
-    ecgPath.classList.remove('animate');
-    void ecgPath.offsetWidth;
-    ecgPath.classList.add('animate');
-
-    // Factors
-    const factorsCard = document.getElementById('factorsCard');
-    const factorList  = document.getElementById('factorList');
-    factorsCard.style.display = 'block';
-    factorList.innerHTML = '';
-
-    result.factors.forEach((f, i) => {
-      const item = document.createElement('div');
-      item.className = 'factor-item';
-      item.innerHTML = `<div class="factor-dot ${f.status}"></div><span>${f.text}</span>`;
-      factorList.appendChild(item);
-      setTimeout(() => item.classList.add('visible'), i * 120 + 400);
-    });
-  }
-</script>
-
+  <script src="Cardio.js"></script>
 </body>
 </html>

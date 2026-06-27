@@ -19,7 +19,7 @@ from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
-# ── Configuration ──────────────────────────────────────────────────────────────
+# ── Configuration ──
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "model")
 os.makedirs(MODEL_DIR, exist_ok=True)
@@ -28,7 +28,7 @@ FEATURES = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs',
             'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal']
 TARGET = 'target'
 
-# ── 1. Chargement des données ──────────────────────────────────────────────────
+# ── 1. Chargement des données ───
 
 def load_data():
     """
@@ -58,7 +58,7 @@ def load_data():
         return df
 
 
-# ── 2. Préparation des données ─────────────────────────────────────────────────
+# ── 2. Préparation des données ─
 
 def prepare_data(df):
     """Nettoyage, encodage et séparation X / y."""
@@ -86,7 +86,7 @@ def prepare_data(df):
     return X, y
 
 
-# ── 3. Entraînement ────────────────────────────────────────────────────────────
+# ── 3. Entraînement ──
 
 def train_model(X, y):
     """Entraîne un Random Forest et évalue ses performances."""
@@ -135,7 +135,7 @@ def train_model(X, y):
     return model, scaler
 
 
-# ── 4. Sauvegarde ─────────────────────────────────────────────────────────────
+# ── 4. Sauvegarde ───
 
 def save_model(model, scaler):
     """Sauvegarde le modèle et le scaler dans le dossier model/."""
@@ -149,7 +149,7 @@ def save_model(model, scaler):
     print(f"💾 Scaler sauvegardé → {scaler_path}")
 
 
-# ── 5. Test rapide ─────────────────────────────────────────────────────────────
+# ── 5. Test rapide ──
 
 def quick_test(model, scaler):
     """Teste le modèle sur un exemple réel (patient à risque élevé)."""
@@ -172,7 +172,7 @@ def quick_test(model, scaler):
     print(f"   → Probabilité de maladie : {proba*100:.1f}%")
 
 
-# ── Main ────────────────────────────────────────────────────────────────────────
+# ── Main ─
 
 if __name__ == "__main__":
     print("=" * 55)
